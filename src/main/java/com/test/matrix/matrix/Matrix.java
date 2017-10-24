@@ -47,16 +47,28 @@ public class Matrix {
       throw new IllegalArgumentException("Matrix can't be multiplied because they have different sizes");
     }
     Double[][] newMatrix = new Double[this.getNumberOfRows()][b.getNumberOfColumns()];
+    Matrix transB = b.transpose();
 
     for (int i = 0; i < this.getNumberOfRows(); i++) {
-      for (int j = 0; j < b.getNumberOfColumns(); j++) {
+      for (int j = 0; j < transB.getNumberOfRows(); j++) {
         newMatrix[i][j] = 0.0;
         for (int k = 0; k < this.getNumberOfColumns(); k++) {
-          newMatrix[i][j] += this.get(i, k) * b.get(k, j);
+          newMatrix[i][j] += this.get(i, k) * transB.get(j, k);
         }
       }
     }
     return new Matrix(newMatrix);
+  }
+
+
+  public Matrix transpose() {
+    Matrix resultMatrix = new Matrix(getNumberOfColumns(), getNumberOfRows());
+    for (int i = 0; i < getNumberOfRows(); i++) {
+      for (int j = 0; j < getNumberOfColumns(); j++) {
+        resultMatrix.set(j, i, this.get(i, j));
+      }
+    }
+    return resultMatrix;
   }
 
   public Matrix multiplyParallel(Matrix b, int threadsNum) throws InterruptedException {
@@ -73,10 +85,12 @@ public class Matrix {
     int batchSize = numberOfRows > numOfThreads ? numberOfRows / numOfThreads : 1;
     int n = numberOfRows > numOfThreads ? numOfThreads : numberOfRows;
 
+    Matrix transB = b.transpose();
+
     for (int i = 0; i < n; i++) {
       int start = i * batchSize;
       int end = (i + 1 != n) ? (i + 1) * batchSize : numberOfRows;
-      executor.submit(new RowMultiplicationTask(this, b, resultMatrix, start, end));
+      executor.submit(new RowMultiplicationTask(this, transB, resultMatrix, start, end));
     }
     executor.shutdown();
     while (!executor.awaitTermination(1, TimeUnit.HOURS)) {
@@ -109,10 +123,10 @@ public class Matrix {
     @Override
     public void run() {
       for (int i = startIndex; i < endIndex; i++) {
-        for (int j = 0; j < matrixB.getNumberOfColumns(); j++) {
+        for (int j = 0; j < matrixB.getNumberOfRows(); j++) {
           Double sum = 0.0;
           for (int k = 0; k < matrixA.getNumberOfColumns(); k++) {
-            sum += matrixA.get(i, k) * matrixB.get(k, j);
+            sum += matrixA.get(i, k) * matrixB.get(j, k);
           }
           resultMatrix.set(i, j, sum);
         }

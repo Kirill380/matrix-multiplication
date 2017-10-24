@@ -62,7 +62,6 @@ public class MatrixTest {
     Assert.assertEquals(c, a.multiplyParallel(b, -1));
   }
 
-  @Ignore
   @Theory
   public void multiplyEstimatePerformance(
           @TestedOn(ints = {1000, 1500}) int size) throws InterruptedException {
